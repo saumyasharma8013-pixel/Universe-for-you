@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080b20">
+  <title>A Universe That Feels Like Home</title>
+  <style>
+    :root { color-scheme: dark; --gold:#f4dba0; --cream:#fff7e8; --muted:#b8bfd8; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#080b20; font-family: Georgia, "Times New Roman", serif; }
+    body { color:var(--cream); }
+    #scene { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+    .vignette { pointer-events:none; position:fixed; inset:0; z-index:1; background:radial-gradient(ellipse at center, transparent 25%, rgba(4,6,19,.28) 75%, rgba(3,4,14,.75) 100%); }
+    .topline { position:fixed; z-index:2; top: max(22px, env(safe-area-inset-top)); left:20px; right:20px; text-align:center; pointer-events:none; }
+    .eyebrow { color:#d6c69f; font: 10px/1.4 Arial,sans-serif; letter-spacing:.28em; text-transform:uppercase; opacity:.85; }
+    h1 { margin:10px 0 0; font-size:clamp(23px,4vw,39px); font-weight:400; letter-spacing:.015em; text-shadow:0 0 24px #d8bb7950; }
+    .hint { position:fixed; z-index:2; bottom:max(24px, env(safe-area-inset-bottom)); left:16px; right:16px; text-align:center; color:#c3c8dc; font:12px/1.5 Arial,sans-serif; opacity:.82; pointer-events:none; }
+    #panel { display:none; position:fixed; z-index:5; left:50%; top:50%; transform:translate(-50%,-50%); width:min(520px, calc(100vw - 32px)); max-height:min(78vh, 680px); overflow:auto; padding:27px 25px 23px; border:1px solid #e7cf9b55; border-radius:18px; background:linear-gradient(145deg, rgba(19,24,54,.96), rgba(8,11,32,.97)); box-shadow:0 22px 90px #0009, inset 0 0 35px #c8b67d0b; backdrop-filter:blur(18px); }
+    #panel.open { display:block; animation:appear .35s ease both; }
+    @keyframes appear { from { opacity:0; transform:translate(-50%,-47%) scale(.985); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+    .panel-kicker { color:var(--gold); font:10px/1.5 Arial,sans-serif; letter-spacing:.24em; text-transform:uppercase; margin-bottom:9px; }
+    #panel h2 { font-weight:400; font-size:clamp(23px,5vw,32px); line-height:1.15; margin:0 32px 17px 0; color:#fff6df; }
+    #panel p { color:#e8e5e0; font-size:17px; line-height:1.65; margin:0; white-space:pre-line; }
+    .panel-actions { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:22px; }
+    .panel-actions button, #start button { border:1px solid #d9c38d80; border-radius:999px; padding:10px 15px; color:#fff4d9; background:#e4cb8d12; font:12px Arial,sans-serif; cursor:pointer; }
+    .panel-actions button:hover, #start button:hover { background:#e4cb8d25; }
+    #progress { color:#c2c8dd; font:11px Arial,sans-serif; }
+    #close { position:absolute; top:14px; right:14px; border:0; background:transparent; color:#d7d9e5; font:24px Arial,sans-serif; cursor:pointer; padding:2px 7px; }
+    #final { display:none; position:fixed; z-index:6; inset:0; overflow:auto; padding:34px 20px max(34px, env(safe-area-inset-bottom)); background:radial-gradient(ellipse at center, rgba(18,23,52,.94), rgba(5,7,22,.97)); align-items:center; justify-content:center; }
+    #final.open { display:flex; animation:fadein 1.2s ease both; }
+    @keyframes fadein { from {opacity:0} to {opacity:1} }
+    .final-inner { width:min(690px,100%); text-align:center; }
+    .final-inner .eyebrow { margin-bottom:14px; }
+    .final-inner h2 { font-weight:400; font-size:clamp(28px,5vw,43px); line-height:1.15; color:#fff0ce; margin:0 0 25px; }
+    .final-inner p { color:#e7e3df; font-size:clamp(15px,2.3vw,18px); line-height:1.8; text-align:left; margin:0 auto 18px; }
+    .final-inner .signoff { text-align:center; color:var(--gold); margin-top:26px; }
+    .final-inner button { margin-top:12px; border:1px solid #d9c38d80; border-radius:999px; padding:11px 17px; color:#fff4d9; background:#e4cb8d12; font:12px Arial,sans-serif; cursor:pointer; }
+    #start { position:fixed; z-index:4; inset:0; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center; background:radial-gradient(ellipse at center, rgba(8,11,32,.25), rgba(5,7,22,.58)); transition:opacity 1.4s ease; }
+    #start.hidden { opacity:0; pointer-events:none; }
+    .start-inner { max-width:540px; }
+    .start-inner h2 { font-size:clamp(30px,6vw,54px); font-weight:400; line-height:1.16; margin:0 0 15px; color:#fff2d5; }
+    .start-inner p { font:13px/1.8 Arial,sans-serif; color:#c5cbe0; margin:0 auto 25px; max-width:390px; }
+    .start-inner button { padding:13px 21px !important; letter-spacing:.04em; }
+    #toast { position:fixed; z-index:3; left:50%; top:76px; transform:translateX(-50%); width:max-content; max-width:90vw; text-align:center; color:#e7d6ac; font:11px/1.5 Arial,sans-serif; letter-spacing:.05em; opacity:0; transition:opacity .4s; pointer-events:none; }
+    #toast.show { opacity:.95; }
+    @media (max-width:480px) {
+      #panel { padding:24px 20px 19px; }
+      #panel p { font-size:15px; line-height:1.6; }
+      .hint { font-size:11px; }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="scene" aria-label="Interactive three-dimensional constellation"></canvas>
+  <div class="vignette"></div>
+  <header class="topline">
+    <div class="eyebrow">A little universe, made for you</div>
+    <h1>A Universe That Feels Like Home</h1>
+  </header>
+  <div id="toast"></div>
+  <div class="hint">Drag to wander through the stars · Tap a glowing star to discover its message</div>
+
+  <section id="start">
+    <div class="start-inner">
+      <div class="eyebrow">A birthday universe</div>
+      <h2>Some souls feel<br>like coming home.</h2>
+      <p>There are little things about you that I hope you never forget. Take your time, and find them among the stars.</p>
+      <button id="begin">Enter the universe</button>
+    </div>
+  </section>
+
+  <section id="panel" role="dialog" aria-modal="true" aria-labelledby="starTitle">
+    <button id="close" aria-label="Close message">×</button>
+    <div class="panel-kicker" id="starNumber">A star for you</div>
+    <h2 id="starTitle"></h2>
+    <p id="starMessage"></p>
+    <div class="panel-actions">
+      <span id="progress">0 of 8 discovered</span>
+      <button id="continue">Back to the stars</button>
+    </div>
+  </section>
+
+  <section id="final" role="dialog" aria-modal="true" aria-labelledby="finalTitle">
+    <div class="final-inner">
+      <div class="eyebrow">Every little light, together</div>
+      <h2 id="finalTitle">The things I hope you see in yourself</h2>
+      <p>I think what makes you so special to me is that none of these things exist separately from one another; the kindness, the quiet strength, the warmth, the thought you put into people and the way you make them feel all come together to make you who you are. I wish you could see yourself the way I see you sometimes, because I think you'd understand why I find so much to admire in you.</p>
+      <p>I hope you never feel like you have to become louder to be powerful, harder to be strong, or any different from who you are to be worth knowing and loving. There is so much beauty in the person you already are, including all the little things you probably don't even think twice about, and I hope this little universe reminds you of that whenever you need it.</p>
+      <p class="signoff">Happy birthday, you. I'm really glad I got to know you.</p>
+      <button id="backToStars">Stay among the stars</button>
+    </div>
+  </section>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const messages = [
+      {
+        title: 'The Quiet Sun',
+        text: "Your power is so calm, and I don't think you even realise how much comfort there is in just being around you. Your smile is so warm and genuine that the moment I see it, all my worries seem to go away, and for a little while, everything feels a little lighter.",
+        color: 0xffd98a, position: [-4.2, 1.5, -1.5]
+      },
+      {
+        title: 'The Feeling of Home',
+        text: "There's something about you that feels like home, and I've never quite known how to explain it. Maybe it's your voice, or the way you listen and respond to me, or how being around you feels so familiar, but there's a comfort in you that I don't think you can manufacture or pretend to have.",
+        color: 0xc9e5ff, position: [-2.7, -1.9, 1.6]
+      },
+      {
+        title: 'The Star That Asks Why',
+        text: "One of my favourite things about you is how you actually listen to me, asking questions about even the tiniest details as if you genuinely want to understand what I'm trying to say. You somehow make me introspect without even trying, and I often find myself understanding my own thoughts a little better after talking to you, which is such a rare and beautiful thing to be able to do for someone.",
+        color: 0xffe9b5, position: [-1.2, 2.9, 2.0]
+      },
+      {
+        title: 'The Gentle Force',
+        text: "I don't think you need to be aggressive or loud to be powerful, because there's so much strength in the way you are. You have such a gentle way about you, but when it comes to the things you care about, you can gather all that strength and pour it into something with a level of dedication that I find genuinely admirable, because you never seem to do things halfheartedly.",
+        color: 0xf2c879, position: [1.1, 1.7, -2.1]
+      },
+      {
+        title: 'The Purest Light',
+        text: "You have such a kind and considerate way of moving through the world, and I admire how much thought you put into the things you do and how they might make other people feel. Your conscience feels so pure to me, and there's something really special about the way you try to be careful with people's hearts, even when you probably have enough of your own things to worry about.",
+        color: 0xfff3df, position: [3.9, 2.0, 1.1]
+      },
+      {
+        title: 'The Little Wonder',
+        text: "I love that you can be so mature and grounded while still having this childlike side to you, because I think both of those things make you who you are. There's something lovely about how wholeheartedly you pursue the things you're passionate about without losing that softer, more curious part of yourself, and I hope life always leaves enough room for you to hold on to it.",
+        color: 0xd9d0ff, position: [4.1, -1.7, -1.4]
+      },
+      {
+        title: 'The Keeper of Home',
+        text: "I've noticed how much home and family mean to you, and how you genuinely try to make sure the people you love feel considered in the choices you make. I think it says a lot about someone when they care not just about what they mean to others, but also about how their actions might affect them, and this is one of those things about you that I find myself admiring more than I can explain.",
+        color: 0xffd7a1, position: [1.3, -3.0, 1.7]
+      },
+      {
+        title: 'The Mirror Star',
+        text: "Sometimes, knowing you feels like looking into a mirror and seeing a version of myself that I'm still trying to grow into. It's strange to find someone who feels so familiar in so many ways, and I don't really know how to explain what makes our connection feel the way it does, but knowing you somehow makes me understand myself a little better and reminds me of the person I want to become.",
+        color: 0xbfdcff, position: [-3.7, -1.2, -2.5]
+      }
+    ];
+
+    const canvas = document.querySelector('#scene');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    renderer.setClearColor(0x080b20, 1);
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x080b20, 0.018);
+    const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 120);
+    camera.position.set(0, 0.4, 12.5);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.045;
+    controls.enablePan = false;
+    controls.minDistance = 6.5;
+    controls.maxDistance = 19;
+    controls.rotateSpeed = 0.48;
+    controls.zoomSpeed = 0.65;
+    controls.target.set(0, 0, 0);
+
+    scene.add(new THREE.AmbientLight(0x8e9bc9, 1.15));
+    const centralLight = new THREE.PointLight(0xffd995, 18, 24, 2);
+    centralLight.position.set(0, 0, 0);
+    scene.add(centralLight);
+
+    // Subtle background nebula made from transparent, softly coloured planes.
+    function makeNebula(color, x, y, z, scale, opacity) {
+      const canvas2 = document.createElement('canvas');
+      canvas2.width = canvas2.height = 256;
+      const ctx = canvas2.getContext('2d');
+      const gradient = ctx.createRadialGradient(128,128,4,128,128,126);
+      const c = new THREE.Color(color);
+      const rgb = `${Math.round(c.r*255)},${Math.round(c.g*255)},${Math.round(c.b*255)}`;
+      gradient.addColorStop(0, `rgba(${rgb},${opacity})`);
+      gradient.addColorStop(.38, `rgba(${rgb},${opacity*.35})`);
+      gradient.addColorStop(1, `rgba(${rgb},0)`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0,0,256,256);
+      const tex = new THREE.CanvasTexture(canvas2);
+      const mat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(scale,scale), mat);
+      mesh.position.set(x,y,z);
+      mesh.rotation.z = Math.random()*Math.PI;
+      scene.add(mesh);
+    }
+    makeNebula(0x354b9a, -4.2, 1.2, -6, 10, .19);
+    makeNebula(0x5c367e, 3.7, -1.8, -7, 9, .13);
+    makeNebula(0x3a6b87, 0.2, 3.6, -9, 8, .10);
+
+    // Hundreds of tiny background stars.
+    const starCount = 1250;
+    const starPositions = new Float32Array(starCount * 3);
+    const starSizes = new Float32Array(starCount);
+    for (let i=0; i<starCount; i++) {
+      starPositions[i*3] = (Math.random()-.5)*52;
+      starPositions[i*3+1] = (Math.random()-.5)*36;
+      starPositions[i*3+2] = -4 - Math.random()*36;
+      starSizes[i] = Math.random()*1.8 + .25;
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions,3));
+    const starMat = new THREE.PointsMaterial({ color:0xcbd8ff, size:.045, transparent:true, opacity:.78, sizeAttenuation:true, depthWrite:false });
+    const distantStars = new THREE.Points(starGeo, starMat);
+    scene.add(distantStars);
+
+    // Central "home" star.
+    const centerGroup = new THREE.Group();
+    scene.add(centerGroup);
+    const centerCore = new THREE.Mesh(
+      new THREE.SphereGeometry(.19, 24, 24),
+      new THREE.MeshBasicMaterial({ color:0xffe7b0 })
+    );
+    centerGroup.add(centerCore);
+    const centerGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTexture(0xffd98a), color:0xffd98a, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, opacity:.8
+    }));
+    centerGlow.scale.set(2.2,2.2,1);
+    centerGroup.add(centerGlow);
+    addRings(centerGroup, 0xffdf9b, .48, .006, .38);
+
+    function glowTexture(hex) {
+      const c = document.createElement('canvas'); c.width=c.height=128;
+      const ctx=c.getContext('2d');
+      const col=new THREE.Color(hex);
+      const rgb=`${Math.round(col.r*255)},${Math.round(col.g*255)},${Math.round(col.b*255)}`;
+      const g=ctx.createRadialGradient(64,64,0,64,64,64);
+      g.addColorStop(0,`rgba(${rgb},1)`);
+      g.addColorStop(.12,`rgba(${rgb},.7)`);
+      g.addColorStop(.35,`rgba(${rgb},.18)`);
+      g.addColorStop(1,`rgba(${rgb},0)`);
+      ctx.fillStyle=g; ctx.fillRect(0,0,128,128);
+      return new THREE.CanvasTexture(c);
+    }
+    function addRings(parent, color, radius, tube, opacity) {
+      const mat = new THREE.MeshBasicMaterial({ color, transparent:true, opacity, side:THREE.DoubleSide });
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 8, 90), mat);
+      ring.rotation.x = .85;
+      ring.rotation.y = .25;
+      parent.add(ring);
+      const ring2 = new THREE.Mesh(new THREE.TorusGeometry(radius*1.35, tube*.55, 8, 90), mat.clone());
+      ring2.rotation.x = 1.15;
+      ring2.rotation.y = -.45;
+      parent.add(ring2);
+    }
+
+    const starObjects = [];
+    const discovered = new Set();
+    const connectionLines = [];
+    const centralPosition = new THREE.Vector3(0,0,0);
+
+    messages.forEach((item, index) => {
+      const group = new THREE.Group();
+      group.position.set(...item.position);
+      group.userData.starIndex = index;
+      scene.add(group);
+
+      const core = new THREE.Mesh(
+        new THREE.SphereGeometry(index === 7 ? .17 : .14, 22, 22),
+        new THREE.MeshStandardMaterial({ color:item.color, emissive:item.color, emissiveIntensity:1.65, roughness:.28, metalness:.05 })
+      );
+      core.userData.starIndex = index;
+      group.add(core);
+
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map:glowTexture(item.color), color:item.color, transparent:true,
+        blending:THREE.AdditiveBlending, depthWrite:false, opacity:.85
+      }));
+      glow.scale.set(index===7 ? 2.1 : 1.7, index===7 ? 2.1 : 1.7, 1);
+      group.add(glow);
+
+      // A tiny four-point glint gives each main star a celestial silhouette.
+      const glintShape = new THREE.Shape();
+      glintShape.moveTo(0,.36); glintShape.quadraticCurveTo(.035,.035,.36,0);
+      glintShape.quadraticCurveTo(.035,-.035,0,-.36);
+      glintShape.quadraticCurveTo(-.035,-.035,-.36,0);
+      glintShape.quadraticCurveTo(-.035,.035,0,.36);
+      const glint = new THREE.Mesh(
+        new THREE.ShapeGeometry(glintShape),
+        new THREE.MeshBasicMaterial({ color:item.color, transparent:true, opacity:.45, side:THREE.DoubleSide })
+      );
+      group.add(glint);
+      addRings(group, item.color, index===7 ? .38 : .30, .004, .28);
+
+      // Invisible-but-larger hit area makes stars easier to tap on phones.
+      const hit = new THREE.Mesh(
+        new THREE.SphereGeometry(.48, 12, 12),
+        new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false })
+      );
+      hit.userData.starIndex = index;
+      group.add(hit);
+
+      // Small orbiting sparkles around each star.
+      const particlePositions = [];
+      for(let p=0;p<15;p++) {
+        const angle=Math.random()*Math.PI*2, radius=.38+Math.random()*.5;
+        particlePositions.push(Math.cos(angle)*radius, (Math.random()-.5)*.7, Math.sin(angle)*radius);
+      }
+      const pGeo=new THREE.BufferGeometry();
+      pGeo.setAttribute('position',new THREE.Float32BufferAttribute(particlePositions,3));
+      const pMat=new THREE.PointsMaterial({ color:item.color, size:.035, transparent:true, opacity:.72, depthWrite:false });
+      const sparks=new THREE.Points(pGeo,pMat);
+      group.add(sparks);
+
+      starObjects.push({group, core, glow, sparks, glint, index, baseY:item.position[1]});
+    });
+
+    // Connection lines are hidden until their star is discovered.
+    messages.forEach((item,index) => {
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([
+        centralPosition,
+        new THREE.Vector3(...item.position)
+      ]);
+      const lineMat = new THREE.LineBasicMaterial({ color:item.color, transparent:true, opacity:.72, depthWrite:false });
+      const line = new THREE.Line(lineGeo,lineMat);
+      line.visible = false;
+      scene.add(line);
+      connectionLines.push(line);
+    });
+
+    // Add a few faint, curved arcs around the overall constellation.
+    const arcMat = new THREE.LineBasicMaterial({ color:0x9aabd9, transparent:true, opacity:.12 });
+    for (let a=0; a<3; a++) {
+      const points=[];
+      for(let j=0;j<=120;j++) {
+        const t=(j/120)*Math.PI*2;
+        const rx=5.1+a*.55, ry=3.3+a*.4;
+        points.push(new THREE.Vector3(Math.cos(t)*rx, Math.sin(t)*ry, Math.sin(t*2+a)*1.3-1));
+      }
+      const arc=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),arcMat);
+      arc.rotation.z=(a-1)*.35;
+      scene.add(arc);
+    }
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.params.Points.threshold = .15;
+    const pointer = new THREE.Vector2();
+    let pointerDown = null;
+    let panelOpen = false;
+    let finalShown = false;
+    const panel = document.querySelector('#panel');
+    const start = document.querySelector('#start');
+    const final = document.querySelector('#final');
+    const toast = document.querySelector('#toast');
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add('show');
+      clearTimeout(showToast.timeout);
+      showToast.timeout = setTimeout(()=>toast.classList.remove('show'), 3300);
+    }
+    function openStar(index) {
+      if (panelOpen || finalShown) return;
+      const item=messages[index];
+      discovered.add(index);
+      connectionLines[index].visible=true;
+      const obj=starObjects[index];
+      obj.glow.material.opacity=1;
+      obj.glow.scale.set(2.2,2.2,1);
+      document.querySelector('#starNumber').textContent=`STAR ${String(index+1).padStart(2,'0')} · ${discovered.size} OF 8 DISCOVERED`;
+      document.querySelector('#starTitle').textContent=item.title;
+      document.querySelector('#starMessage').textContent=item.text;
+      document.querySelector('#progress').textContent=`${discovered.size} of 8 discovered`;
+      panel.classList.add('open');
+      panelOpen=true;
+      controls.enabled=false;
+      if(discovered.size===8) {
+        document.querySelector('#continue').textContent='Reveal the constellation';
+      } else {
+        document.querySelector('#continue').textContent='Back to the stars';
+      }
+    }
+    function closePanel() {
+      panel.classList.remove('open');
+      panelOpen=false;
+      controls.enabled=true;
+      if(discovered.size===8 && !finalShown) {
+        showToast('All eight stars have found their place.');
+      }
+    }
+    function revealFinal() {
+      panel.classList.remove('open');
+      panelOpen=false;
+      controls.enabled=false;
+      final.classList.add('open');
+      finalShown=true;
+      // Camera eases back to show the full constellation.
+      targetCamera = new THREE.Vector3(0,0.3,14.5);
+      targetLook = new THREE.Vector3(0,0,0);
+    }
+    document.querySelector('#begin').addEventListener('click',()=>{
+      start.classList.add('hidden');
+      showToast('Look around and tap any glowing star.');
+      setTimeout(()=>start.style.display='none',1500);
+    });
+    document.querySelector('#close').addEventListener('click',closePanel);
+    document.querySelector('#continue').addEventListener('click',()=>{
+      if(discovered.size===8) revealFinal();
+      else closePanel();
+    });
+    document.querySelector('#backToStars').addEventListener('click',()=>{
+      final.classList.remove('open');
+      finalShown=false;
+      controls.enabled=true;
+    });
+
+    renderer.domElement.addEventListener('pointerdown', event => {
+      pointerDown={x:event.clientX,y:event.clientY};
+    });
+    renderer.domElement.addEventListener('pointerup', event => {
+      if(!pointerDown || panelOpen || finalShown) { pointerDown=null; return; }
+      const dx=event.clientX-pointerDown.x, dy=event.clientY-pointerDown.y;
+      pointerDown=null;
+      if(Math.hypot(dx,dy)>8) return; // Dragging rotates the camera; don't select a star.
+      pointer.x=(event.clientX/window.innerWidth)*2-1;
+      pointer.y=-(event.clientY/window.innerHeight)*2+1;
+      raycaster.setFromCamera(pointer,camera);
+      const targets=[];
+      starObjects.forEach(obj=>obj.group.traverse(child=>{ if(child.userData.starIndex!==undefined && child.geometry) targets.push(child); }));
+      const hits=raycaster.intersectObjects(targets,false);
+      if(hits.length) openStar(hits[0].object.userData.starIndex);
+    });
+
+    let targetCamera = camera.position.clone();
+    let targetLook = controls.target.clone();
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const t=clock.getElapsedTime();
+      centerGroup.rotation.y=t*.12;
+      centerGroup.rotation.z=Math.sin(t*.2)*.04;
+      centerGlow.material.opacity=.65+Math.sin(t*1.1)*.12;
+      starObjects.forEach((obj,i)=>{
+        obj.group.position.y=messages[i].position[1]+Math.sin(t*.45+i*1.7)*.055;
+        obj.group.rotation.y=Math.sin(t*.22+i)*.12;
+        obj.glow.material.opacity=(discovered.has(i)?1:.65+Math.sin(t*1.4+i)*.12);
+        const pulse=discovered.has(i)?2.05:1.65+Math.sin(t*1.7+i)*.12;
+        obj.glow.scale.set(pulse,pulse,1);
+        obj.sparks.rotation.y=t*.12*(i%2===0?1:-1);
+        obj.glint.rotation.z=t*.08*(i%2===0?1:-1);
+      });
+      if(finalShown) {
+        camera.position.lerp(targetCamera,.025);
+        controls.target.lerp(targetLook,.025);
+      }
+      controls.update();
+      renderer.render(scene,camera);
+    }
+    animate();
+
+    window.addEventListener('resize',()=>{
+      camera.aspect=window.innerWidth/window.innerHeight;
+      camera.fov=window.innerWidth<600 ? 61 : 52;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth,window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1,2));
+    });
+    camera.fov=window.innerWidth<600 ? 61 : 52;
+    camera.updateProjectionMatrix();
+  </script>
+</body>
+</html>
